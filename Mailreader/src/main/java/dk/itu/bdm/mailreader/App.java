@@ -8,9 +8,14 @@ import javax.mail.*;
 
 public class App {
 	public static void main(String[] args) throws FileNotFoundException {
+		if(args.length==0){
+			System.out.println("you need to point to your mailcredential file as the argument");
+			System.out.println("the file should be in the order: \"imapadress account password\"");
+			System.exit(3);
+		}
 		Properties props = new Properties();
 		props.setProperty("mail.store.protocol", "imaps");
-		Scanner sc = new Scanner(new File("mails.acc"));		
+		Scanner sc = new Scanner(new File(args[0]));		
 		ArrayList<MailAcc> accounts= new ArrayList<MailAcc>();
 		while (sc.hasNext()) {
 			accounts.add(new MailAcc(sc.next(), sc.next(), sc.next()));
@@ -40,7 +45,7 @@ public class App {
 							//Account for the mails sent
 							if(folder.getFullName().matches(".*[sS]ent.*|.*[sS]end.*|.*[Uu]dbakke.*")){
 								mailAcc.setMailsSent(folder.getMessageCount());
-								System.out.println("found the sent folder: "+folder.getFullName());
+//								System.out.println("found the sent folder: "+folder.getFullName());
 							}
 						}
 					} catch (MessagingException e) {
