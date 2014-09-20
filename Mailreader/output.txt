@@ -1,0 +1,7 @@
+Searching through 3 accounts
+initialized thread with sofusalbertsen@gmail.com
+initialized thread with sofu@itu.dk
+initialized thread with sofusalbertsen@hotmail.com
+MailAcc [ imapAdress=outlook.office365.com, account=sofu@itu.dk, pass=3833Lkvmxxcv1128, firstMail=Mon Dec 30 09:01:53 CET 2013, lastMail=Sat Sep 20 11:29:42 CEST 2014, mailsTotal=1014, mailsSent=0, mailsPerAdress={}, conversations=0]
+MailAcc [ imapAdress=imap.gmail.com, account=sofusalbertsen@gmail.com, pass=sewalkvmxxcv, firstMail=Fri Nov 05 12:18:50 CET 2010, lastMail=Sat Sep 20 17:18:54 CEST 2014, mailsTotal=3104, mailsSent=0, mailsPerAdress={}, conversations=0]
+MailAcc [ imapAdress=imap-mail.outlook.com, account=sofusalbertsen@hotmail.com, pass=sewakamikaze1281, firstMail=Sat Dec 27 21:05:41 CET 2003, lastMail=Sat Sep 20 12:50:31 CEST 2014, mailsTotal=9623, mailsSent=1731, mailsPerAdress={}, conversations=0]
