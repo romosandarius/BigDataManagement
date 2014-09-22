@@ -1,8 +1,6 @@
 package dk.itu.bdm.mailreader;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -34,10 +32,10 @@ public class MailAcc {
 		 * Do something with the mails per address, and the conversations
 		 * hashmap
 		 */
+		System.err.print("'");
 		String cleanSub = msg.getSubject().replaceAll(subRegEx, "");
 		// If the mail is one i have sent
 		if (isSentMail) {
-			System.out.println("sentmail:" + cleanSub);
 			conversationSubjects.add(cleanSub);
 		}
 		// put all the mails in the hashmap
@@ -125,5 +123,39 @@ public class MailAcc {
 		System.out.println("after: "+conversations.size());
 		return conversations;
 	}
+	private int calculateMailsInConversations(){
+		int i=0;
+		Collection<ArrayList<Message>> tmp =conversations.values();
+		for (ArrayList<Message> arrayList : tmp) {
+			i+=arrayList.size();
+		}
+		return i;
+	}
+
+	private void printConversations() {
+		conversations.forEach((k,v)->{
+			System.out.println("subject: "+k+"\t lenght:"+v.size());
+		});
+	}
+	private void printConversationInterval() {
+		conversations.forEach((k,v)->{
+			v.sort(new MessageComparator());
+			for (Message message : v) {
+				//TODO: conversationInterval here
+			}
+		});
+	}
+	public void printStatistics() {
+		StringBuilder sb = new StringBuilder();
+		String nl="\n";
+		sb.append("Total mails: "+mailsTotal+nl);
+		sb.append("Total mails sent: "+mailsSent+nl);
+		sb.append("Conversations: "+conversations.size()+nl);
+		sb.append("Mails belonging in a conversation:" + calculateMailsInConversations());
+		sb.append("each mail conversation: "+nl);
+		printConversations();
+		printConversationInterval();
+	}
+
 
 }

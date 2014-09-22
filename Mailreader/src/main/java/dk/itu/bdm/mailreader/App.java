@@ -1,9 +1,7 @@
 package dk.itu.bdm.mailreader;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 import javax.mail.*;
 
@@ -43,12 +41,12 @@ public class App extends Thread {
 	}
 
 	
-	private void collectTotals(Folder[] f) {
+	private void collectTotals(Folder[] f) throws MessagingException {
 		int totalCount = 0;
 		for (javax.mail.Folder folder : f) {
 			try {
 				folder.open(Folder.READ_ONLY);
-				System.out.println(folder.getMessageCount());
+//				System.out.println(folder.getMessageCount());
 				int n = folder.getMessageCount();
 				if (n > 1) {
 					Message message = folder.getMessage(n);
@@ -64,11 +62,14 @@ public class App extends Thread {
 							".*[sS]ent.*|.*[sS]end.*|.*[Uu]dbakke.*")) {
 						mailAcc.setMailsSent(folder.getMessageCount());
 						mailAcc.setSendMailFolderName(folder.getFullName());
-						// System.out.println("found the sent folder: "+folder.getFullName()+folder.getMessageCount());
+					 System.out.println("found the sent folder: "+folder.getFullName()+folder.getMessageCount());
 					}
 				}
 			} catch (MessagingException e) {
 //				e.printStackTrace();
+			}
+			if (folder.isOpen()) {
+				folder.close(false);
 			}
 		}
 
@@ -85,7 +86,7 @@ public class App extends Thread {
 		}
 		int loglvl;
 
-		loglvl = args.length == 2 ? Integer.parseInt(args[1]) : 2;
+		loglvl = args.length == 2 ? Integer.parseInt(args[1]) : 1;
 		Properties props = new Properties();
 		props.setProperty("mail.store.protocol", "imaps");
 		Scanner sc = new Scanner(new File(args[0]));
@@ -103,6 +104,12 @@ public class App extends Thread {
 private void traverseFolders(Folder[] f) throws MessagingException {
 	//then add all the rest
 		for (javax.mail.Folder folder : f) {
+			if(!folder.isOpen()){
+			try {
+				folder.open(Folder.READ_ONLY);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}}
 			Message[] msgs = folder.getMessages();
 			System.out
 					.println("starting collecting statistics in folder "+folder.getName()+" This may take a while");
@@ -116,9 +123,10 @@ private void traverseFolders(Folder[] f) throws MessagingException {
 				
 				
 			}
+			folder.close(false);
 		}
 		System.out.println(mailAcc.cleanConversation());
-		
+		mailAcc.printStatistics();
 	}
 
 }
