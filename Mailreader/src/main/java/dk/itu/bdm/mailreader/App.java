@@ -10,15 +10,12 @@ import javax.mail.*;
 public class App extends Thread {
 	private final MailAcc mailAcc;
 	private final Properties props;
-	private ConcurrentHashMap<String, Integer> emailPerAdress;
-	private ConcurrentHashMap<String, ArrayList<Message>> conversations;
 	private final int loglevel;
 
 	public App(MailAcc ma, Properties prop, int loglvl) {
 		mailAcc = ma;
 		loglevel = loglvl;
 		props = prop;
-		emailPerAdress = new ConcurrentHashMap<String, Integer>();
 		System.out.println("initialized thread with " + ma.getAccount());
 	}
 
@@ -28,52 +25,54 @@ public class App extends Thread {
 			Store store = session.getStore();
 			store.connect(mailAcc.getImapAdress(), mailAcc.getAccount(),
 					mailAcc.getPass());
-			int totalCount = 0;
 			Folder[] f = store.getDefaultFolder().list("*");
-			for (javax.mail.Folder folder : f) {
-				try {
-					folder.open(Folder.READ_ONLY);
-					System.out.println(folder.getMessageCount());
-					int n = folder.getMessageCount();
-					if (n > 1) {
-						Message message = folder.getMessage(n);
-						// System.out.println(message.getSubject()+message.getReceivedDate().toString());
-						mailAcc.setLastMail(message.getReceivedDate());
-						message = folder.getMessage(1);
-						// System.out.println(message.getSubject()+message.getReceivedDate().toString());
-						mailAcc.setFirstMail(message.getReceivedDate());
-						Message[] msgs = folder.getMessages();
-						if (loglevel == 2)
-							traverseMessages(msgs);
+			collectTotals(f);
 
-					}
-					if ((folder.getType() & javax.mail.Folder.HOLDS_MESSAGES) != 0) {
-						totalCount += folder.getMessageCount();
-						// Account for the mails sent
-						if (folder.getFullName().matches(
-								".*[sS]ent.*|.*[sS]end.*|.*[Uu]dbakke.*")) {
-							mailAcc.setMailsSent(folder.getMessageCount());
-							 System.out.println("found the sent folder: "+folder.getFullName()+folder.getMessageCount());
-						}
-					}
-				} catch (MessagingException e) {
-					e.printStackTrace();
-				}
-			}
 			if (loglevel == 2) {
-				ConcurrentHashMap<String, ArrayList<Message>> conv = mailAcc
-						.cleanConversations();
-				System.out.println(mailAcc.getAccount() + " have "
-						+ conv.size() + " converstations:");
-				conv.forEach((k, v) -> System.out.println(k + ":\t" + v.size()));
+				traverseFolders(f);
+//				System.out.println(mailAcc.getAccount() + " have "
+//						+ conv.size() + " converstations:");
+//				conv.forEach((k, v) -> System.out.println(k + ":\t" + v.size()));
 			}
-			mailAcc.setMailsTotal(totalCount);
-			// System.out.println("total count= " + totalCount);
+
 			System.out.println(mailAcc);
 		} catch (Exception mex) {
 			mex.printStackTrace();
 		}
 
+	}
+
+	
+	private void collectTotals(Folder[] f) {
+		int totalCount = 0;
+		for (javax.mail.Folder folder : f) {
+			try {
+				folder.open(Folder.READ_ONLY);
+				System.out.println(folder.getMessageCount());
+				int n = folder.getMessageCount();
+				if (n > 1) {
+					Message message = folder.getMessage(n);
+					mailAcc.setLastMail(message.getReceivedDate());
+					message = folder.getMessage(1);
+					mailAcc.setFirstMail(message.getReceivedDate());
+
+				}
+				if ((folder.getType() & javax.mail.Folder.HOLDS_MESSAGES) != 0) {
+					totalCount += folder.getMessageCount();
+					// Account for the mails sent
+					if (folder.getFullName().matches(
+							".*[sS]ent.*|.*[sS]end.*|.*[Uu]dbakke.*")) {
+						mailAcc.setMailsSent(folder.getMessageCount());
+						mailAcc.setSendMailFolderName(folder.getFullName());
+						// System.out.println("found the sent folder: "+folder.getFullName()+folder.getMessageCount());
+					}
+				}
+			} catch (MessagingException e) {
+//				e.printStackTrace();
+			}
+		}
+
+		mailAcc.setMailsTotal(totalCount);
 	}
 
 	public static void main(String[] args) throws FileNotFoundException {
@@ -86,7 +85,7 @@ public class App extends Thread {
 		}
 		int loglvl;
 
-		loglvl = args.length == 4 ? Integer.parseInt(args[3]) : 1;
+		loglvl = args.length == 2 ? Integer.parseInt(args[1]) : 2;
 		Properties props = new Properties();
 		props.setProperty("mail.store.protocol", "imaps");
 		Scanner sc = new Scanner(new File(args[0]));
@@ -101,25 +100,25 @@ public class App extends Thread {
 		}
 		sc.close();
 	}
-
-	public void traverseMessages(Message[] folder) {
-		String from;
-		int msgCount;
-		System.out
-				.println("starting collecting statistics about ppl. This may take a while");
-		int no = 0;
-		for (Message msg : folder) {
-			try {
-				mailAcc.addEmailToConversation(msg);
-				from = msg.getFrom()[0].toString();
-				msgCount = (emailPerAdress.get(from) != null) ? emailPerAdress
-						.get(from) + 1 : 1;
-				emailPerAdress.put(from, msgCount);
-			} catch (ArrayIndexOutOfBoundsException e) {
-			} catch (NullPointerException e) {
-			} catch (MessagingException e) {
+private void traverseFolders(Folder[] f) throws MessagingException {
+	//then add all the rest
+		for (javax.mail.Folder folder : f) {
+			Message[] msgs = folder.getMessages();
+			System.out
+					.println("starting collecting statistics in folder "+folder.getName()+" This may take a while");
+			for (Message msg : msgs) {
+					try {
+						mailAcc.putEmail(msg, folder.getFullName().equalsIgnoreCase(mailAcc.getSentFolderName()));
+					} catch (NullPointerException | IndexOutOfBoundsException e) {
+						// TODO Auto-generated catch block
+//						e.printStackTrace();
+					}
+				
+				
 			}
 		}
-
+		System.out.println(mailAcc.cleanConversation());
+		
 	}
+
 }

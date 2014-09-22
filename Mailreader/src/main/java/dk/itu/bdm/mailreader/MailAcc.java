@@ -2,9 +2,8 @@ package dk.itu.bdm.mailreader;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
-import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 
@@ -14,65 +13,39 @@ public class MailAcc {
 	private Date firstMail, lastMail;
 	private int mailsTotal, mailsSent;
 	private HashMap<String, Integer> mailsPerAdress;
-	private ConcurrentHashMap<String, ArrayList<Message>> conversations;
+	private HashMap<String, ArrayList<Message>> conversations;
+	private HashSet<String> conversationSubjects;
 	private ArrayList<Message> tmp;
+	private String sendMailFolder;
 
-	public void addEmailToConversation(Message msg) throws MessagingException,
-			NullPointerException {
+	public MailAcc(String imapAdress, String account, String pass) {
+		super();
+		this.imapAdress = imapAdress;
+		this.account = account;
+		this.pass = pass;
+		mailsPerAdress = new HashMap<String, Integer>();
+		conversations = new HashMap<String, ArrayList<Message>>();
+		conversationSubjects = new HashSet<String>();
+	}
+
+	public void putEmail(Message msg, boolean isSentMail)
+			throws MessagingException, NullPointerException,IndexOutOfBoundsException {
+		/*
+		 * Do something with the mails per address, and the conversations
+		 * hashmap
+		 */
 		String cleanSub = msg.getSubject().replaceAll(subRegEx, "");
-		if (conversations.containsKey(cleanSub)) {
-			tmp = conversations.get(cleanSub);
-			tmp.add(msg);
-			// System.out.println(cleanSub+"\t"+tmp.size());
-			conversations.put(cleanSub, tmp);
-		} else {
-			tmp = new ArrayList<Message>();
-			tmp.add(msg);
-			conversations.put(cleanSub, tmp);
+		// If the mail is one i have sent
+		if (isSentMail) {
+			System.out.println("sentmail:" + cleanSub);
+			conversationSubjects.add(cleanSub);
 		}
-
-	}
-
-	public ConcurrentHashMap<String, ArrayList<Message>> cleanConversations() {
-		
-		conversations.forEach((k, v) -> {
-			if (v.size() < 2) {
-				conversations.remove(k);
-				// System.out.println("removed from conversations:" + k);
-			}
-		});
-		 conversations= cleanOneWayCOnversations(conversations);
-		return conversations;
-	}
-
-	private ConcurrentHashMap<String, ArrayList<Message>> cleanOneWayCOnversations(
-			ConcurrentHashMap<String, ArrayList<Message>> conversations2) {
-		System.out.println(conversations2.size());
-		Stream<ArrayList<Message>> trueConversations = conversations2
-				.values()
-				.stream()
-				.filter(m -> {
-					return m.stream()
-							.filter( 
-									message -> {
-										return
-										message.getFrom().stream().filter(from -> from.toString()
-											.equalsIgnoreCase(account).findFirst()
-											.isPresent());
-											});
-				});
-System.out.println(trueConversations.count());
-System.out.println(conversations2.size());
-return conversations2;
-	}
-
-	public HashMap<String, Integer> getMailsPerAdress() {
-		return mailsPerAdress;
-	}
-
-	public void setMailsPerAdress(HashMap<String, Integer> collaborations) {
-		// TODO: IMplement merging functionality
-		this.mailsPerAdress = collaborations;
+		// put all the mails in the hashmap
+		tmp = conversations.getOrDefault(cleanSub, new ArrayList<Message>());
+		tmp.add(msg);
+		conversations.put(cleanSub, tmp);
+		String sender = msg.getFrom()[0].toString();
+		mailsPerAdress.put(sender, mailsPerAdress.getOrDefault(sender, 0) + 1);
 	}
 
 	public Date getFirstMail() {
@@ -123,21 +96,34 @@ return conversations2;
 		return pass;
 	}
 
-	public MailAcc(String imapAdress, String account, String pass) {
-		super();
-		this.imapAdress = imapAdress;
-		this.account = account;
-		this.pass = pass;
-		mailsPerAdress = new HashMap<String, Integer>();
-		conversations = new ConcurrentHashMap<String, ArrayList<Message>>();
-	}
-
 	@Override
 	public String toString() {
 		return "MailAcc [ imapAdress=" + imapAdress + ", account=" + account
-				+ ", pass=" + pass + ", firstMail=" + firstMail + ", lastMail="
-				+ lastMail + ", mailsTotal=" + mailsTotal + ", mailsSent="
-				+ mailsSent + ", mailsPerAdress=" + mailsPerAdress
-				+ ", conversations=" + conversations.size() + "]";
+				+ ", pass=" + pass.hashCode() + ", firstMail=" + firstMail
+				+ ", lastMail=" + lastMail + ", mailsTotal=" + mailsTotal
+				+ ", mailsSent=" + mailsSent + ", mailsPerAdress="
+				+ mailsPerAdress + ", conversations=" + conversations.size()
+				+ "]";
 	}
+
+	public void setSendMailFolderName(String fullName) {
+		sendMailFolder = fullName;
+
+	}
+
+	public String getSentFolderName() {
+		return sendMailFolder;
+	}
+
+	public HashMap<String, ArrayList<Message>> cleanConversation() {
+		System.out.println("cleaning conversations hashMap size before:"+conversations.size());
+		for (String string : conversations.keySet()) {
+			if(!conversationSubjects.contains(string))
+				conversations.remove(string);
+			System.out.print(".");
+		}
+		System.out.println("after: "+conversations.size());
+		return conversations;
+	}
+
 }
