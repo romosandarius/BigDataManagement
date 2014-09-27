@@ -25,28 +25,22 @@ public class App extends Thread {
 					mailAcc.getPass());
 			Folder[] f = store.getDefaultFolder().list("*");
 			collectTotals(f);
-
 			if (loglevel == 2) {
 				traverseFolders(f);
-//				System.out.println(mailAcc.getAccount() + " have "
-//						+ conv.size() + " converstations:");
-//				conv.forEach((k, v) -> System.out.println(k + ":\t" + v.size()));
 			}
-
-			System.out.println(mailAcc);
+//			System.out.println(mailAcc);
 		} catch (Exception mex) {
 			mex.printStackTrace();
 		}
 
 	}
 
-	
 	private void collectTotals(Folder[] f) throws MessagingException {
 		int totalCount = 0;
 		for (javax.mail.Folder folder : f) {
 			try {
 				folder.open(Folder.READ_ONLY);
-//				System.out.println(folder.getMessageCount());
+				// System.out.println(folder.getMessageCount());
 				int n = folder.getMessageCount();
 				if (n > 1) {
 					Message message = folder.getMessage(n);
@@ -62,11 +56,13 @@ public class App extends Thread {
 							".*[sS]ent.*|.*[sS]end.*|.*[Uu]dbakke.*")) {
 						mailAcc.setMailsSent(folder.getMessageCount());
 						mailAcc.setSendMailFolderName(folder.getFullName());
-					 System.out.println("found the sent folder: "+folder.getFullName()+folder.getMessageCount());
+						System.out.println("found the sent folder "
+								+ folder.getFullName()+" containing "
+								+ folder.getMessageCount()+" emails");
 					}
 				}
 			} catch (MessagingException e) {
-//				e.printStackTrace();
+				// e.printStackTrace();
 			}
 			if (folder.isOpen()) {
 				folder.close(false);
@@ -101,32 +97,45 @@ public class App extends Thread {
 		}
 		sc.close();
 	}
-private void traverseFolders(Folder[] f) throws MessagingException {
-	//then add all the rest
+
+	private void traverseFolders(Folder[] f) {
+		
 		for (javax.mail.Folder folder : f) {
-			if(!folder.isOpen()){
+		try {
+			traverseFolder(folder);
+		} catch (MessagingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		}
+		mailAcc.cleanConversation();
+		mailAcc.printStatistics();
+	}
+	private void traverseFolder(Folder folder) throws MessagingException {
+		if (!folder.isOpen()) {
 			try {
 				folder.open(Folder.READ_ONLY);
 			} catch (Exception e) {
 				e.printStackTrace();
-			}}
-			Message[] msgs = folder.getMessages();
-			System.out
-					.println("starting collecting statistics in folder "+folder.getName()+" This may take a while");
-			for (Message msg : msgs) {
-					try {
-						mailAcc.putEmail(msg, folder.getFullName().equalsIgnoreCase(mailAcc.getSentFolderName()));
-					} catch (NullPointerException | IndexOutOfBoundsException e) {
-						// TODO Auto-generated catch block
-//						e.printStackTrace();
-					}
-				
-				
+				return;
 			}
-			folder.close(false);
 		}
-		System.out.println(mailAcc.cleanConversation());
-		mailAcc.printStatistics();
+		Message[] msgs = folder.getMessages();
+		System.out.println("starting collecting statistics in folder "
+				+ folder.getName() + " This may take a while");
+		int i = 0;
+		for (Message msg : msgs) {
+			try {
+				System.out.print("prossessing "+i+" out of "+msgs.length+" messages.       \r");
+				i++;
+				mailAcc.putEmail(msg, folder.getFullName()
+						.equalsIgnoreCase(mailAcc.getSentFolderName()));
+			} catch (NullPointerException | IndexOutOfBoundsException e) {
+			}
+
+		}
+		folder.close(false);
 	}
+	
 
 }

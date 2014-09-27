@@ -3,7 +3,8 @@ package dk.itu.bdm.mailreader;
 import java.util.*;
 
 import javax.mail.Message;
-import javax.mail.MessagingException;
+import javax.mail.MessagingException;import javax.mail.internet.InternetAddress;
+
 
 public class MailAcc {
 	private final String subRegEx = "RE:? |Re:? |Sv:? |Fwd:? |SV:? |VS:? ";
@@ -32,7 +33,6 @@ public class MailAcc {
 		 * Do something with the mails per address, and the conversations
 		 * hashmap
 		 */
-		System.err.print("'");
 		String cleanSub = msg.getSubject().replaceAll(subRegEx, "");
 		// If the mail is one i have sent
 		if (isSentMail) {
@@ -115,12 +115,19 @@ public class MailAcc {
 
 	public HashMap<String, ArrayList<Message>> cleanConversation() {
 		System.out.println("cleaning conversations hashMap size before:"+conversations.size());
-		for (String string : conversations.keySet()) {
+		System.out.println();
+//		conversations.keySet().forEach(k-> System.out.print(k));
+		System.out.println();
+//		System.out.println(conversationSubjects.toString());
+		for (Iterator<String> iterator = conversations.keySet().iterator(); iterator
+				.hasNext();) {
+			String string = (String) iterator.next();
 			if(!conversationSubjects.contains(string))
-				conversations.remove(string);
+				iterator.remove();
 			System.out.print(".");
+			
 		}
-		System.out.println("after: "+conversations.size());
+		System.out.println("\nafter: "+conversations.size());
 		return conversations;
 	}
 	private int calculateMailsInConversations(){
@@ -131,19 +138,34 @@ public class MailAcc {
 		}
 		return i;
 	}
-
-	private void printConversations() {
-		conversations.forEach((k,v)->{
-			System.out.println("subject: "+k+"\t lenght:"+v.size());
-		});
-	}
 	private void printConversationInterval() {
+		System.out.println("\n\n");
+		System.out.println("Mail threads(subject), and their intervals in seconds");
 		conversations.forEach((k,v)->{
 			v.sort(new MessageComparator());
-			for (Message message : v) {
-				//TODO: conversationInterval here
+			for (Iterator<Message> iterator = v.iterator(); iterator.hasNext();) {
+				Message message = (Message) iterator.next();
+				//If the
+				try {
+					if(!((InternetAddress)message.getFrom()[0]).getAddress().equalsIgnoreCase(account)){
+						while (true&&iterator.hasNext()){
+						Message myMessage=iterator.next();
+						if(((InternetAddress)myMessage.getFrom()[0]).getAddress().equalsIgnoreCase(account)){
+							System.out.println(k+","+((myMessage.getSentDate().getTime()-message.getSentDate().getTime())/1000));
+//							System.out.println("there is "+((myMessage.getSentDate().getTime()-message.getSentDate().getTime())/60000)+" minutes between replies in subject "+k);
+//							System.out.println("\t "+myMessage.getSentDate().toString()+"\t "+message.getSentDate().toString());
+						break;
+						}
+						}
+						}
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+//					e.printStackTrace();
+				}
 			}
+			
 		});
+		System.out.println("\n\n");
 	}
 	public void printStatistics() {
 		StringBuilder sb = new StringBuilder();
@@ -152,9 +174,20 @@ public class MailAcc {
 		sb.append("Total mails sent: "+mailsSent+nl);
 		sb.append("Conversations: "+conversations.size()+nl);
 		sb.append("Mails belonging in a conversation:" + calculateMailsInConversations());
-		sb.append("each mail conversation: "+nl);
-		printConversations();
+		System.out.println(sb.toString());
 		printConversationInterval();
+		System.out.println("\n\n");
+		printMailThreadSize();
+	}
+
+	private void printMailThreadSize() {
+		System.out.println("\n\n");
+		System.out.println("Mail threads(subject), and their sizes");
+		conversations.forEach((k,v)->{
+			if(v.size()>1)
+			System.out.println(k+","+v.size());
+		});
+		System.out.println("\n\n");
 	}
 
 
